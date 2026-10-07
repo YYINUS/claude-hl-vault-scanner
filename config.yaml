@@ -29,6 +29,17 @@ benchmarks:
   interval: 1d
   lookback_days: 1200
 
+analyze:
+  rank_min_tvl: 10000       # ranked universe: open, top-level vaults at or above this TVL...
+  rank_min_age_days: 30     # ...at least this old...
+  min_daily_points: 10      # ...with this many daily returns in the 30-day window
+  flags:
+    low_leader_stake: 0.05  # leader owns < 5% of the vault (HLP children exempt)
+    high_leverage: 5.0      # open notional / account value
+    concentrated: 0.6       # largest position > 60% of open notional
+    deep_drawdown: -0.5     # all-time max drawdown worse than -50%
+    tvl_mismatch: 0.5       # listed TVL and account value differ by > 50%
+
 # Always fetched, even if the vault list endpoint is unreachable
 seed_vaults:
   - "0xdfc24b077bc1425ad1dea75bcb6f8158e10df303"   # HLP (parent)
@@ -37,3 +48,4 @@ paths:
   snapshots_dir: data/snapshots
   known_vaults_file: data/known_vaults.json   # fallback address list
   closed_vaults_dir: data/closed_vaults        # vaultDetails cache for closed vaults (fetched once)
+  reports_dir: reports                         # vaultscan export writes reports/<date>/

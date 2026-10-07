@@ -58,24 +58,15 @@ jobs:
           retention-days: 90
           compression-level: 9
 
-      - name: Commit manifest + vault list to the data branch
-        env:
-          D: ${{ steps.snap.outputs.date }}
-        run: |
-          mkdir -p /tmp/out/snapshots/$D
-          cp data/snapshots/$D/manifest.json data/snapshots/$D/vaults_list_normalized.json /tmp/out/snapshots/$D/
-          [ -f data/snapshots/$D/fetch_failures.jsonl ] && cp data/snapshots/$D/fetch_failures.jsonl /tmp/out/snapshots/$D/ || true
-          cp data/known_vaults.json /tmp/out/
-          git config user.name "github-actions[bot]"
-          git config user.email "41898282+github-actions[bot]@users.noreply.github.com"
-          git fetch origin data || true
-          if git rev-parse --verify origin/data >/dev/null 2>&1; then
-            git switch -C data origin/data
-          else
-            git switch --orphan data && git rm -rf --quiet . || true
-          fi
-          rm -rf snapshots/$D
-          cp -r /tmp/out/* .
-          git add snapshots known_vaults.json
-          git commit -m "snapshot $D" || echo "nothing to commit"
-          git push origin data
+      - name: Build, analyze, export
+        run: vaultscan report --date ${{ steps.snap.outputs.date }}
+
+      - name: Upload report
+        uses: actions/upload-artifact@v4
+        with:
+          name: report-${{ steps.snap.outputs.date }}
+          path: reports/${{ steps.snap.outputs.date }}
+          retention-days: 90
+
+      - name: Commit manifest, metrics and report to the data branch
+        run: .github/scripts/publish-data.sh ${{ steps.snap.outputs.date }}

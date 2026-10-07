@@ -1,6 +1,6 @@
 [project]
 name = "vaultscan"
-version = "0.1.0"
+version = "0.2.0"
 requires-python = ">=3.11"
 dependencies = ["httpx>=0.27", "pyyaml", "pandas", "pyarrow", "duckdb", "matplotlib"]
 
@@ -12,3 +12,6 @@ vaultscan = "vaultscan.cli:main"
 
 [tool.setuptools.packages.find]
 include = ["vaultscan*"]
+
+[tool.setuptools.package-data]
+vaultscan = ["export/template.html"]

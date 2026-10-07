@@ -1,4 +1,4 @@
-"""vaultscan command-line tool: fetch | build | analyze | export."""
+"""vaultscan command-line tool: check | fetch | build | analyze | export | report."""
 from __future__ import annotations
 
 import argparse
@@ -29,6 +29,28 @@ def cmd_check(args) -> int:
     return 0 if all(r["ok"] for r in results) else 1
 
 
+def cmd_build(args) -> int:
+    from .store.build import run_build
+    print(json.dumps(run_build(load_config(args.config), Path(args.root), args.date), indent=2))
+    return 0
+
+
+def cmd_analyze(args) -> int:
+    from .analyze.metrics import run_analyze
+    print(json.dumps(run_analyze(load_config(args.config), Path(args.root), args.date), indent=2))
+    return 0
+
+
+def cmd_export(args) -> int:
+    from .export.report import run_export
+    print(json.dumps(run_export(load_config(args.config), Path(args.root), args.date), indent=2))
+    return 0
+
+
+def cmd_report(args) -> int:
+    return cmd_build(args) or cmd_analyze(args) or cmd_export(args)
+
+
 def main(argv=None) -> int:
     ap = argparse.ArgumentParser(prog="vaultscan")
     ap.add_argument("--config", default="config.yaml")
@@ -41,8 +63,12 @@ def main(argv=None) -> int:
     f.add_argument("--force", action="store_true", help="refetch files already on disk")
     f.add_argument("--limit", type=int, help="cap tier-2 vaults (for smoke tests)")
     f.add_argument("--vault-list-file", help="use a saved vault list JSON instead of stats-data")
-    for name in ("build", "analyze", "export"):
-        sub.add_parser(name, help=f"{name} (not built yet)")
+    for name, help_ in (("build", "raw snapshot -> Parquet tables"),
+                        ("analyze", "per-vault metrics, flags and ranking"),
+                        ("export", "screener CSV + HTML report"),
+                        ("report", "build + analyze + export")):
+        sp = sub.add_parser(name, help=help_)
+        sp.add_argument("--date", help="snapshot date folder (default: latest)")
     args = ap.parse_args(argv)
     logging.basicConfig(level=logging.DEBUG if args.verbose else logging.INFO,
                         format="%(asctime)s %(levelname)s %(name)s: %(message)s")
@@ -51,8 +77,12 @@ def main(argv=None) -> int:
         return cmd_check(args)
     if args.cmd == "fetch":
         return cmd_fetch(args)
-    print(f"'{args.cmd}' is scheduled for a later day of the build.", file=sys.stderr)
-    return 2
+    handlers = {"build": cmd_build, "analyze": cmd_analyze, "export": cmd_export, "report": cmd_report}
+    try:
+        return handlers[args.cmd](args)
+    except FileNotFoundError as e:
+        print(f"error: {e}", file=sys.stderr)
+        return 2
 
 
 if __name__ == "__main__":

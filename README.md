@@ -1,7 +1,6 @@
 # hl-vault-scanner
 
-Hyperliquid vault screener & analyzer, v0.1. Pipeline: fetch → build → analyze → export.
-Built so far: `check` and `fetch` (Mon, Oct 5).
+Hyperliquid vault screener & analyzer, v0.2. Pipeline: fetch → build → analyze → export.
 
 ## Setup
     python -m venv .venv && . .venv/bin/activate
@@ -26,6 +25,39 @@ limiter set to 80% of Hyperliquid's 1,200/min, with exponential backoff on 429/5
 
 If the vault list endpoint is unreachable, the run falls back to `seed_vaults` + `data/known_vaults.json`
 and adds child vaults found in parent details.
+
+## Build, analyze, export
+    vaultscan report                      # all three on the latest snapshot
+    vaultscan build   [--date D]          # raw JSON -> data/snapshots/D/tables/*.parquet
+    vaultscan analyze [--date D]          # -> metrics.parquet, closed_metrics.parquet, equity.parquet, analysis.json
+    vaultscan export  [--date D]          # -> reports/D/{report.html, screener.csv, closed_vaults.csv, summary.json}
+
+**Tables** (`build`): `vaults` (list + details + positions summary, one row per vault), `history`
+(account value and PnL for the day/week/month/allTime windows), `positions`, `fills`, `funding`,
+`ledger` (deposits/withdrawals), `benchmarks` (BTC/ETH daily candles).
+
+**Metrics** (`analyze`): returns are time-weighted (Modified Dietz per history interval, chained), so
+deposits and withdrawals don't count as performance. 30-day metrics (return, annualized volatility,
+Sharpe, Sortino, drawdown, beta/correlation to BTC) use daily points from the month window; all-time
+metrics (return, CAGR, max drawdown) use the ~14-day allTime points. Also: leverage, largest-position
+share, 30-day trades/volume/fees/funding/net flows (TVL ≥ $100k vaults), and risk flags
+(`low_leader_stake`, `high_leverage`, `concentrated`, `deep_drawdown`, `young`, `deposits_closed`,
+`tvl_mismatch`; thresholds in `config.yaml` under `analyze`).
+
+**Ranking**: open, top-level vaults (HLP children are inside HLP) with TVL ≥ $10k, age ≥ 30 days and
+≥ 10 daily returns. Score 0–100 = average percentile of 30-day Sharpe, all-time CAGR, all-time max
+drawdown, log TVL and age. It is a screen, not a forecast.
+
+**Report** (`export`): one self-contained HTML file (no external scripts, opens offline) with headline
+numbers, risk-vs-return scatter, top-15 bars, growth of $1 for the top 3 vs BTC, drawdown and
+closed-vault lifetime histograms, and a sortable, filterable screener table.
+
+## Automation
+`.github/workflows/nightly.yml` runs at 00:30 UTC: fetch → report. The raw snapshot and the report are
+uploaded as 90-day artifacts; the manifest, `metrics.parquet` and the report go to the `data` branch
+under `snapshots/<date>/` and `reports/<date>/` (latest copy in `reports/latest/`).
+`.github/workflows/report.yml` (manual) re-runs build → analyze → export on an existing snapshot
+artifact without refetching.
 
 ## Tests
     pytest -q      # offline, uses tests/fixtures
