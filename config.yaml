@@ -33,6 +33,7 @@ analyze:
   rank_min_tvl: 10000       # ranked universe: open, top-level vaults at or above this TVL...
   rank_min_age_days: 30     # ...at least this old...
   min_daily_points: 10      # ...with this many daily returns in the 30-day window
+  cagr_min_days: 180        # CAGR only for vaults with this much history
   flags:
     low_leader_stake: 0.05  # leader owns < 5% of the vault (HLP children exempt)
     high_leverage: 5.0      # open notional / account value

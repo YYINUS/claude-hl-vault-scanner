@@ -39,7 +39,7 @@ and adds child vaults found in parent details.
 **Metrics** (`analyze`): returns are time-weighted (Modified Dietz per history interval, chained), so
 deposits and withdrawals don't count as performance. 30-day metrics (return, annualized volatility,
 Sharpe, Sortino, drawdown, beta/correlation to BTC) use daily points from the month window; all-time
-metrics (return, CAGR, max drawdown) use the ~14-day allTime points. Also: leverage, largest-position
+metrics (return, max drawdown, and CAGR once a vault has 180 days of history) use the ~14-day allTime points. Also: leverage, largest-position
 share, 30-day trades/volume/fees/funding/net flows (TVL ≥ $100k vaults), and risk flags
 (`low_leader_stake`, `high_leverage`, `concentrated`, `deep_drawdown`, `young`, `deposits_closed`,
 `tvl_mismatch`; thresholds in `config.yaml` under `analyze`).

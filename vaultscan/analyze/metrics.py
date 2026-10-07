@@ -27,6 +27,7 @@ DEFAULTS = {
     "rank_min_tvl": 10_000,
     "rank_min_age_days": 30,
     "min_daily_points": 10,
+    "cagr_min_days": 180,
     "min_denominator_usd": 100,
     "flags": {"low_leader_stake": 0.05, "high_leverage": 5.0, "concentrated": 0.6,
               "deep_drawdown": -0.5, "tvl_mismatch": 0.5},
@@ -94,7 +95,20 @@ def _period_metrics(idx: pd.Series, btc: pd.Series, min_points: int) -> dict:
     return out
 
 
-def _all_time_metrics(idx: pd.Series, h_all: pd.DataFrame) -> dict:
+def last_change(h_all: pd.DataFrame) -> pd.Timestamp:
+    """Last allTime point where account value or PnL moved.
+
+    A closed vault can keep a small idle balance for years, so "still funded"
+    is not "still trading"; flat 14-day points mean nothing happened.
+    """
+    h = h_all.sort_values("time")
+    av, pnl = h["account_value"].fillna(0), h["pnl"].fillna(0)
+    tol = max(1.0, 1e-4 * float(av.abs().max() or 0))
+    moved = (av.diff().abs() > tol) | (pnl.diff().abs() > tol)
+    return h.loc[moved, "time"].max() if moved.any() else (h["time"].min() if len(h) else pd.NaT)
+
+
+def _all_time_metrics(idx: pd.Series, h_all: pd.DataFrame, cagr_min_days: float = 180) -> dict:
     out: dict = {}
     if len(idx) < 2:
         return out
@@ -103,12 +117,12 @@ def _all_time_metrics(idx: pd.Series, h_all: pd.DataFrame) -> dict:
     out["return_all"] = total
     out["history_days"] = days
     out["max_drawdown_all"] = max_drawdown(idx)
-    if days >= 30 and idx.iloc[-1] > 0:
+    # Annualizing a few weeks of returns produces meaningless numbers.
+    if days >= cagr_min_days and idx.iloc[-1] > 0:
         out["cagr_all"] = float((idx.iloc[-1] / idx.iloc[0]) ** (365 / days) - 1)
     out["pnl_all"] = float(h_all["pnl"].dropna().iloc[-1]) if h_all["pnl"].notna().any() else None
     out["peak_account_value"] = float(h_all["account_value"].max())
-    alive = h_all[h_all["account_value"] > 0]
-    out["last_active"] = alive["time"].max() if len(alive) else pd.NaT
+    out["last_active"] = last_change(h_all)
     return out
 
 
@@ -176,7 +190,7 @@ def analyze_tables(t: dict[str, pd.DataFrame], snapshot_date: str, cfg_analyze: 
             row["return_7d"] = float(idx_w.iloc[-1] / idx_w.iloc[0] - 1)
         h_all = h[h["window"] == "allTime"]
         idx_a = _series(h, "allTime")
-        row.update(_all_time_metrics(idx_a, h_all))
+        row.update(_all_time_metrics(idx_a, h_all, a["cagr_min_days"]))
         perf.append(row)
         if len(idx_a):
             equity.append(pd.DataFrame({"vault_address": addr, "time": idx_a.index, "index": idx_a.values}))
@@ -244,7 +258,7 @@ def summarize(m: pd.DataFrame, closed: pd.DataFrame, date: str, a: dict) -> dict
         "share_positive_30d": (float((ranked["return_30d"] > 0).mean())
                                if "return_30d" in ranked and len(ranked) else None),
         "median_closed_lifetime_days": _med(closed.get("lifetime_days", pd.Series(dtype=float))),
-        "rank_rules": {k: a[k] for k in ("rank_min_tvl", "rank_min_age_days", "min_daily_points")},
+        "rank_rules": {k: a[k] for k in ("rank_min_tvl", "rank_min_age_days", "min_daily_points", "cagr_min_days")},
     }
 
 

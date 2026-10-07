@@ -99,3 +99,11 @@ def test_export_report(cfg, snapshot):
     screener = pd.read_csv(rdir / "screener.csv")
     assert screener.iloc[0]["vault_address"] == HLP and "score" in screener
     assert (rdir / "summary.json").exists()
+
+
+def test_last_change_ignores_idle_balance():
+    from vaultscan.analyze.metrics import last_change
+    t = pd.date_range("2025-01-01", periods=6, freq="14D", tz="UTC")
+    h = pd.DataFrame({"time": t, "account_value": [0, 5000, 7000, 312.5, 312.5, 312.5],
+                      "pnl": [0, 0, 2000, -1000, -1000, -1000]})
+    assert last_change(h) == t[3]
