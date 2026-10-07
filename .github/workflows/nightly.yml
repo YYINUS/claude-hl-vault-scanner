@@ -1,0 +1,81 @@
+name: nightly-snapshot
+
+on:
+  schedule:
+    - cron: "30 0 * * *"      # 00:30 UTC daily
+  workflow_dispatch: {}
+
+permissions:
+  contents: write
+
+concurrency:
+  group: nightly-snapshot
+  cancel-in-progress: false
+
+jobs:
+  snapshot:
+    runs-on: ubuntu-latest
+    timeout-minutes: 120
+    steps:
+      - uses: actions/checkout@v4
+
+      - uses: actions/setup-python@v5
+        with:
+          python-version: "3.11"
+          cache: pip
+
+      - name: Install
+        run: pip install -e ".[dev]"
+
+      - name: Offline tests
+        run: pytest -q
+
+      - name: Connectivity check
+        run: vaultscan check
+
+      # Closed vaults never change: keep their details between runs.
+      - name: Restore closed-vault cache
+        uses: actions/cache@v4
+        with:
+          path: data/closed_vaults
+          key: closed-vaults-${{ github.run_id }}
+          restore-keys: closed-vaults-
+
+      - name: Fetch snapshot
+        run: vaultscan fetch
+
+      - name: Pick snapshot date
+        id: snap
+        run: echo "date=$(ls data/snapshots | sort | tail -1)" >> "$GITHUB_OUTPUT"
+
+      # Raw responses (~110 MB/day) are kept as a workflow artifact for now.
+      # Durable storage (Parquet tables on the data branch, raw to R2) comes with task 6.
+      - name: Upload raw snapshot
+        uses: actions/upload-artifact@v4
+        with:
+          name: snapshot-${{ steps.snap.outputs.date }}
+          path: data/snapshots/${{ steps.snap.outputs.date }}
+          retention-days: 90
+          compression-level: 9
+
+      - name: Commit manifest + vault list to the data branch
+        env:
+          D: ${{ steps.snap.outputs.date }}
+        run: |
+          mkdir -p /tmp/out/snapshots/$D
+          cp data/snapshots/$D/manifest.json data/snapshots/$D/vaults_list_normalized.json /tmp/out/snapshots/$D/
+          [ -f data/snapshots/$D/fetch_failures.jsonl ] && cp data/snapshots/$D/fetch_failures.jsonl /tmp/out/snapshots/$D/ || true
+          cp data/known_vaults.json /tmp/out/
+          git config user.name "github-actions[bot]"
+          git config user.email "41898282+github-actions[bot]@users.noreply.github.com"
+          git fetch origin data || true
+          if git rev-parse --verify origin/data >/dev/null 2>&1; then
+            git switch -C data origin/data
+          else
+            git switch --orphan data && git rm -rf --quiet . || true
+          fi
+          rm -rf snapshots/$D
+          cp -r /tmp/out/* .
+          git add snapshots known_vaults.json
+          git commit -m "snapshot $D" || echo "nothing to commit"
+          git push origin data

@@ -1,4 +1,9 @@
 __pycache__/
+.pytest_cache/
 *.tmp
+*.log
 .venv/
 *.egg-info/
+# Snapshot data is too large for the code branch (~110 MB per day).
+data/snapshots/
+data/closed_vaults/
