@@ -10,10 +10,11 @@
   "median_return_30d": 0.014507771034454775,
   "median_max_drawdown_all": -0.36925028487673717,
   "share_positive_30d": 0.600896860986547,
-  "median_closed_lifetime_days": 584.52183109375,
+  "median_closed_lifetime_days": 49.601368981481485,
   "rank_rules": {
     "rank_min_tvl": 10000,
     "rank_min_age_days": 30,
-    "min_daily_points": 10
+    "min_daily_points": 10,
+    "cagr_min_days": 180
   }
 }
