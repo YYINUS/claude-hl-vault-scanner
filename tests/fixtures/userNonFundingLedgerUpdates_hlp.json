@@ -1,0 +1,52 @@
+[
+ {
+  "time": 1788575039268,
+  "hash": "0x4722950c84f567be489c0443b5343a02015d00f21ff88690eaeb405f43f941a8",
+  "delta": {
+   "type": "vaultDeposit",
+   "vault": "0xdfc24b077bc1425ad1dea75bcb6f8158e10df303",
+   "usdc": "1016.503389"
+  }
+ },
+ {
+  "time": 1788577329908,
+  "hash": "0x3d85ae8a53642e453eff0443b5af8001fe00c66fee674d17e14e59dd1268082f",
+  "delta": {
+   "type": "vaultDeposit",
+   "vault": "0xdfc24b077bc1425ad1dea75bcb6f8158e10df303",
+   "usdc": "1002.467604"
+  }
+ },
+ {
+  "time": 1788577933070,
+  "hash": "0xa419394245b3d3b5a5920443b5cf9b0202a40027e0b6f28747e1e49504b7ada0",
+  "delta": {
+   "type": "vaultDeposit",
+   "vault": "0xdfc24b077bc1425ad1dea75bcb6f8158e10df303",
+   "usdc": "30.0"
+  }
+ },
+ {
+  "time": 1788578940502,
+  "hash": "0x432855cba81098a644a20443b605560201d300b14313b778e6f1011e67147290",
+  "delta": {
+   "type": "vaultWithdraw",
+   "vault": "0xdfc24b077bc1425ad1dea75bcb6f8158e10df303",
+   "user": "0xbacf4fdd4a1bdf39f256cacf0b8cc92546cc7a9d",
+   "requestedUsd": "200.0",
+   "commission": "0.0",
+   "closingCost": "0.0",
+   "basis": "199.16758",
+   "netWithdrawnUsd": "200.0"
+  }
+ },
+ {
+  "time": 1788579077094,
+  "hash": "0xf3329af26952ab6ef4ac0443b60cab02019e00d80455ca4196fb464528568559",
+  "delta": {
+   "type": "vaultDeposit",
+   "vault": "0xdfc24b077bc1425ad1dea75bcb6f8158e10df303",
+   "usdc": "1000.0"
+  }
+ }
+]

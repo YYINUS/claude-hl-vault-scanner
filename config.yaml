@@ -1,0 +1,39 @@
+# vaultscan configuration — v0.1
+api:
+  info_url: https://api.hyperliquid.xyz/info
+  vault_list_url: https://stats-data.hyperliquid.xyz/Mainnet/vaults
+  timeout_s: 30
+  max_retries: 6            # per request, exponential backoff with jitter
+  backoff_base_s: 1.0
+  backoff_max_s: 60
+
+rate_limit:
+  weight_per_minute: 1200   # Hyperliquid limit per IP
+  utilization: 0.8          # throttle at 80% of quota
+  workers: 4                # concurrent requests sharing the limiter
+
+tiers:
+  tier2_min_tvl: 10000      # vaultDetails + clearinghouseState
+  tier2_include_closed_with_history: true
+  closed_min_abs_pnl: 1000  # closed vaults: only those whose list PnL ever reached |$1k|
+  tier3_min_tvl: 100000     # + fills, funding, ledger
+  tier3_lookback_days: 30
+
+pagination:
+  fills_max_pages: 5        # API keeps only the 10,000 most recent fills
+  funding_max_pages: 40     # 500 rows per page
+  ledger_max_pages: 20      # 2,000 rows per page
+
+benchmarks:
+  coins: [BTC, ETH]
+  interval: 1d
+  lookback_days: 1200
+
+# Always fetched, even if the vault list endpoint is unreachable
+seed_vaults:
+  - "0xdfc24b077bc1425ad1dea75bcb6f8158e10df303"   # HLP (parent)
+
+paths:
+  snapshots_dir: data/snapshots
+  known_vaults_file: data/known_vaults.json   # fallback address list
+  closed_vaults_dir: data/closed_vaults        # vaultDetails cache for closed vaults (fetched once)
