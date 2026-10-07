@@ -183,7 +183,8 @@ footer p { margin: 4px 0; }
     const raw = (hi - lo) / n, mag = Math.pow(10, Math.floor(Math.log10(raw)));
     const step = [1, 2, 2.5, 5, 10].map(m => m * mag).find(s => s >= raw);
     const out = [];
-    for (let v = Math.ceil(lo / step) * step; v <= hi + 1e-9; v += step) out.push(+v.toFixed(10));
+    // Always end on a tick at or above hi, so the tallest mark stays inside the plot.
+    for (let v = Math.ceil(lo / step) * step; ; v += step) { out.push(+v.toFixed(10)); if (v >= hi - 1e-9) break; }
     return out;
   }
   function empty(id, msg) {
